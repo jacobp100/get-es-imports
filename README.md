@@ -12,7 +12,7 @@ import b from './b';
 
 ```js
 // b.js
-import c from './c';
+import * as c from './c';
 ...
 ```
 
@@ -27,7 +27,7 @@ Returns an object in the form:
 ```js
 {
   'full path of ./b': ['default'],
-  'full path of ./c': ['default'],
+  'full path of ./c': ['*'],
   'full path of lodash': ['find'],
 }
 ```
@@ -56,6 +56,21 @@ The `exclude` option is an array of file globs for files you don't want to check
 The `parser` and `parserOptions` options are identical to [ESLint](http://eslint.org/docs/user-guide/configuring#specifying-parser). By default, it will supports ES6 modules and JSX.
 
 The `resolveOptions` is passed to [resolve](https://github.com/substack/node-resolve) to resolvev imports.
+
+## Return values
+
+`dependencies` is a map of absolute file path to an array of imports. Named imports are left as-is, default imports are reported as `'default'`, and namespace imports are reported as `'*'`.
+
+I.e.
+
+```js
+import { a } from './a'; // 'a'
+import { a as b } from './a'; // 'a'
+import a from './a'; // 'default'
+import * as a from './a'; // '*'
+```
+
+`loadedFiles` is the files that were loaded and checked.
 
 The default parser and default parser options are exported for your convenience.
 
