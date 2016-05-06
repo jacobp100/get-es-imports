@@ -1,99 +1,40 @@
 'use strict';
 
-function _interopDefault (ex) { return (ex && (typeof ex === 'object') && 'default' in ex) ? ex['default'] : ex; }
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.defaultParserOptions = exports.defaultParser = undefined;
 
-var lodash_fp = require('lodash/fp');
-var resolve = _interopDefault(require('resolve'));
-var minimatch = _interopDefault(require('minimatch'));
-var path = require('path');
-var fs = require('fs');
-var promisify = _interopDefault(require('tiny-promisify'));
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
 
-var babelHelpers = {};
+var _fp = require('lodash/fp');
 
-babelHelpers.asyncToGenerator = function (fn) {
-  return function () {
-    var gen = fn.apply(this, arguments);
-    return new Promise(function (resolve, reject) {
-      function step(key, arg) {
-        try {
-          var info = gen[key](arg);
-          var value = info.value;
-        } catch (error) {
-          reject(error);
-          return;
-        }
+var _resolve = require('resolve');
 
-        if (info.done) {
-          resolve(value);
-        } else {
-          return Promise.resolve(value).then(function (value) {
-            return step("next", value);
-          }, function (err) {
-            return step("throw", err);
-          });
-        }
-      }
+var _resolve2 = _interopRequireDefault(_resolve);
 
-      return step("next");
-    });
-  };
-};
+var _minimatch = require('minimatch');
 
-babelHelpers.slicedToArray = function () {
-  function sliceIterator(arr, i) {
-    var _arr = [];
-    var _n = true;
-    var _d = false;
-    var _e = undefined;
+var _minimatch2 = _interopRequireDefault(_minimatch);
 
-    try {
-      for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) {
-        _arr.push(_s.value);
+var _path = require('path');
 
-        if (i && _arr.length === i) break;
-      }
-    } catch (err) {
-      _d = true;
-      _e = err;
-    } finally {
-      try {
-        if (!_n && _i["return"]) _i["return"]();
-      } finally {
-        if (_d) throw _e;
-      }
-    }
+var _fs = require('fs');
 
-    return _arr;
-  }
+var _tinyPromisify = require('tiny-promisify');
 
-  return function (arr, i) {
-    if (Array.isArray(arr)) {
-      return arr;
-    } else if (Symbol.iterator in Object(arr)) {
-      return sliceIterator(arr, i);
-    } else {
-      throw new TypeError("Invalid attempt to destructure non-iterable instance");
-    }
-  };
-}();
+var _tinyPromisify2 = _interopRequireDefault(_tinyPromisify);
 
-babelHelpers.toConsumableArray = function (arr) {
-  if (Array.isArray(arr)) {
-    for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i];
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-    return arr2;
-  } else {
-    return Array.from(arr);
-  }
-};
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i]; return arr2; } else { return Array.from(arr); } }
 
-babelHelpers;
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { return step("next", value); }, function (err) { return step("throw", err); }); } } return step("next"); }); }; }
 
-const readFilePromise = promisify(fs.readFile);
+const readFilePromise = (0, _tinyPromisify2.default)(_fs.readFile);
 
-const defaultParser = 'espree';
-const defaultParserOptions = {
+const defaultParser = exports.defaultParser = 'espree';
+const defaultParserOptions = exports.defaultParserOptions = {
   ecmaVersion: 6,
   sourceType: 'module',
   ecmaFeatures: {
@@ -104,24 +45,24 @@ const defaultParserOptions = {
 const nodeModulesRe = /^[./]+\/node_modules\//;
 const isNodeModules = value => nodeModulesRe.test(value);
 
-const astDeclarationImports = lodash_fp.flow(lodash_fp.get('body'), lodash_fp.filter({ type: 'ImportDeclaration' }));
+const astDeclarationImports = (0, _fp.flow)((0, _fp.get)('body'), (0, _fp.filter)({ type: 'ImportDeclaration' }));
 
-const declarationImports = lodash_fp.flow(lodash_fp.get('specifiers'), lodash_fp.map(lodash_fp.cond([[lodash_fp.matchesProperty('type', 'ImportDefaultSpecifier'), lodash_fp.constant('default')], [lodash_fp.matchesProperty('type', 'ImportNamespaceSpecifier'), lodash_fp.constant('*')], [lodash_fp.matchesProperty('type', 'ImportSpecifier'), lodash_fp.get(['imported', 'name'])]])));
+const declarationImports = (0, _fp.flow)((0, _fp.get)('specifiers'), (0, _fp.map)((0, _fp.cond)([[(0, _fp.matchesProperty)('type', 'ImportDefaultSpecifier'), (0, _fp.constant)('default')], [(0, _fp.matchesProperty)('type', 'ImportNamespaceSpecifier'), (0, _fp.constant)('*')], [(0, _fp.matchesProperty)('type', 'ImportSpecifier'), (0, _fp.get)(['imported', 'name'])]])));
 
-const declarationFilename = lodash_fp.get(['source', 'value']);
+const declarationFilename = (0, _fp.get)(['source', 'value']);
 
 const resolveDeclrationFilenameImportsPair = (basedir, resolveOptions, _ref) => {
-  var _ref2 = babelHelpers.slicedToArray(_ref, 2);
+  var _ref2 = _slicedToArray(_ref, 2);
 
   let dependency = _ref2[0];
   let imports = _ref2[1];
   return new Promise((res, rej) => {
-    resolve(dependency, lodash_fp.set('basedir', basedir, resolveOptions), (err, resolvedFilename) => !err ? res([resolvedFilename, imports]) : rej(err));
+    (0, _resolve2.default)(dependency, (0, _fp.set)('basedir', basedir, resolveOptions), (err, resolvedFilename) => !err ? res([resolvedFilename, imports]) : rej(err));
   });
 };
 
-var index = (() => {
-  var ref = babelHelpers.asyncToGenerator(function* (_ref3) {
+exports.default = (() => {
+  var ref = _asyncToGenerator(function* (_ref3) {
     var _ref3$files = _ref3.files;
     let files = _ref3$files === undefined ? [] : _ref3$files;
     var _ref3$recurse = _ref3.recurse;
@@ -139,20 +80,20 @@ var index = (() => {
 
     const parse = _require.parse; // eslint-disable-line
 
-    const excludeValues = lodash_fp.castArray(exclude);
+    const excludeValues = (0, _fp.castArray)(exclude);
 
-    const fileIsExcluded = lodash_fp.isEmpty(excludeValues) ? lodash_fp.constant(false) : function (file) {
-      return lodash_fp.some(lodash_fp.cond([[lodash_fp.includes('*'), lodash_fp.partial(minimatch, [file])], [lodash_fp.constant(true), lodash_fp.equals(file)]]), excludeValues);
+    const fileIsExcluded = (0, _fp.isEmpty)(excludeValues) ? (0, _fp.constant)(false) : function (file) {
+      return (0, _fp.some)((0, _fp.cond)([[(0, _fp.includes)('*'), (0, _fp.partial)(_minimatch2.default, [file])], [(0, _fp.constant)(true), (0, _fp.equals)(file)]]), excludeValues);
     };
 
     const addFile = (() => {
-      var ref = babelHelpers.asyncToGenerator(function* (state, filename) {
+      var ref = _asyncToGenerator(function* (state, filename) {
         const dependencies = state.dependencies;
         const loadedFiles = state.loadedFiles;
         const stats = state.stats;
 
 
-        const skip = lodash_fp.includes(filename, loadedFiles) || fileIsExcluded(filename);
+        const skip = (0, _fp.includes)(filename, loadedFiles) || fileIsExcluded(filename);
         if (skip) return { localImports: [], state: state };
 
         let contents;
@@ -166,44 +107,45 @@ var index = (() => {
           }
         }
 
-        const basedir = path.dirname(filename);
+        const basedir = (0, _path.dirname)(filename);
 
         let ast;
         try {
           ast = parse(contents, parserOptions);
         } catch (e) {
-          if (path.basename(filename) === '.js') {
+          if ((0, _path.basename)(filename) === '.js') {
             throw e;
           }
 
-          const updatedStats = [].concat(babelHelpers.toConsumableArray(stats), [`Failed to open file ${ filename }`]);
+          const updatedStats = [].concat(_toConsumableArray(stats), [`Failed to open file ${ filename }`]);
 
           return {
             localImports: [],
-            stats: lodash_fp.set('stats', updatedStats, state)
+            stats: (0, _fp.set)('stats', updatedStats, state)
           };
         }
 
-        const declarationFilenameImportsPair = lodash_fp.over([declarationFilename, declarationImports]);
+        const declarationFilenameImportsPair = (0, _fp.over)([declarationFilename, declarationImports]);
 
         const astImports = astDeclarationImports(ast);
 
-        const allImportsPromises = lodash_fp.flow(lodash_fp.map(declarationFilenameImportsPair), lodash_fp.map(lodash_fp.partial(resolveDeclrationFilenameImportsPair, [basedir, resolveOptions])))(astImports);
+        const allImportsPromises = (0, _fp.flow)((0, _fp.map)(declarationFilenameImportsPair), (0, _fp.map)((0, _fp.partial)(resolveDeclrationFilenameImportsPair, [basedir, resolveOptions])))(astImports);
 
         const allImportsPairs = yield Promise.all(allImportsPromises);
-        const allImports = lodash_fp.fromPairs(allImportsPairs);
+        const allImports = (0, _fp.fromPairs)(allImportsPairs);
 
-        const localImports = lodash_fp.flow(lodash_fp.reject(lodash_fp.flow(lodash_fp.first, lodash_fp.partial(path.relative, [filename]), isNodeModules)), lodash_fp.fromPairs)(allImportsPairs);
+        const localImports = (0, _fp.flow)((0, _fp.reject)((0, _fp.flow)(_fp.first, (0, _fp.partial)(_path.relative, [filename]), isNodeModules)), _fp.fromPairs)(allImportsPairs);
 
         return {
-          localImports: lodash_fp.keys(localImports),
+          localImports: (0, _fp.keys)(localImports),
           state: {
-            dependencies: lodash_fp.assignWith(lodash_fp.union, allImports, dependencies),
-            loadedFiles: lodash_fp.union(loadedFiles, [filename]),
+            dependencies: (0, _fp.assignWith)(_fp.union, allImports, dependencies),
+            loadedFiles: (0, _fp.union)(loadedFiles, [filename]),
             stats: stats
           }
         };
       });
+
       return function addFile(_x2, _x3) {
         return ref.apply(this, arguments);
       };
@@ -215,7 +157,7 @@ var index = (() => {
     };
 
     const getDependenciesFromFile = (() => {
-      var ref = babelHelpers.asyncToGenerator(function* (inputState, filename) {
+      var ref = _asyncToGenerator(function* (inputState, filename) {
         var _ref4 = yield addFile(inputState, filename);
 
         let localImports = _ref4.localImports;
@@ -231,18 +173,19 @@ var index = (() => {
 
         return state;
       });
+
       return function getDependenciesFromFile(_x4, _x5) {
         return ref.apply(this, arguments);
       };
     })();
 
-    const filesValues = lodash_fp.castArray(files);
+    const filesValues = (0, _fp.castArray)(files);
 
     for (const filename of filesValues) {
       state = yield getDependenciesFromFile(state, filename);
     }
 
-    const dependencies = lodash_fp.mapValues(lodash_fp.sortBy(lodash_fp.identity), state.dependencies);
+    const dependencies = (0, _fp.mapValues)((0, _fp.sortBy)(_fp.identity), state.dependencies);
     var _state = state;
     const loadedFiles = _state.loadedFiles;
 
@@ -256,7 +199,3 @@ var index = (() => {
 
   return getDependencies;
 })();
-
-exports.defaultParser = defaultParser;
-exports.defaultParserOptions = defaultParserOptions;
-exports['default'] = index;
