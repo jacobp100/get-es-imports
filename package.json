@@ -1,6 +1,6 @@
 {
   "name": "get-es-imports",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -38,5 +38,9 @@
       "babel-register"
     ],
     "babel": "inherit"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jacobp100/get-es-imports"
   }
 }
