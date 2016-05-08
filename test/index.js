@@ -151,7 +151,7 @@ test('export statements work for default, class, variable, and function declarat
   }).then(({ imports, exports }) => {
     t.deepEqual({}, imports);
     t.deepEqual({
-      [join(genericExports, 'index.js')]: ['Class', 'constant', 'default', 'fn'],
+      [join(genericExports, 'index.js')]: ['CONSTANT', 'Class', 'constant', 'default', 'fn'],
     }, exports);
   });
 });
