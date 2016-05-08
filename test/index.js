@@ -16,6 +16,7 @@ const localImports = join(baseDir, 'local-imports');
 const namespaceImports = join(baseDir, 'namespace-imports');
 const externalImports = join(baseDir, 'external-imports');
 const duplicatedImports = join(baseDir, 'duplicated-imports');
+const genericExports = join(baseDir, 'exports');
 const exportFrom = join(baseDir, 'export-from');
 const exportFromNamespace = join(baseDir, 'export-from-namespace');
 const nestedFiles = join(baseDir, 'nested-files');
@@ -139,6 +140,19 @@ test('duplicated-imports parses and loads recirsively via a single file', t => {
     t.deepEqual({
       [join(nodeModules, 'lodash/lodash.js')]: ['filter', 'map'],
     }, imports);
+  });
+});
+
+test('export from statements without a namespace work', t => {
+  t.plan(2);
+
+  return getEsImports({
+    files: [join(genericExports, 'index.js')],
+  }).then(({ imports, exports }) => {
+    t.deepEqual({}, imports);
+    t.deepEqual({
+      [join(genericExports, 'index.js')]: ['Class', 'constant', 'default', 'fn'],
+    }, exports);
   });
 });
 

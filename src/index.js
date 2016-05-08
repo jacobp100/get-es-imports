@@ -48,6 +48,7 @@ const getAstImportsFromImportStatements = flow(
 // Exports
 const getVariableDeclarationExportedNames = cond([
   [matchesProperty('type', 'FunctionDeclaration'), get(['id', 'name'])],
+  [matchesProperty('type', 'ClassDeclaration'), get(['id', 'name'])],
   [matchesProperty('type', 'VariableDeclaration'), flow(get('declarations'), flatMap('id.name'))],
 ]);
 
