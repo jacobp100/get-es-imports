@@ -1,7 +1,7 @@
 {
-  "name": "get-es-imports",
-  "version": "1.0.1",
-  "description": "Recursively get imported files and respective import names for files using ES import/export syntax",
+  "name": "get-es-dependencies",
+  "version": "1.0.0",
+  "description": "Recursively get import and exports for files using ES import/export syntax",
   "main": "index.js",
   "scripts": {
     "test": "ava --verbose --timeout 2s",

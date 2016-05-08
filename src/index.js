@@ -1,11 +1,11 @@
 import {
   map, get, flow, set, filter, over, fromPairs, assignWith, union, includes, keys, reject, first,
   partial, cond, matchesProperty, constant, some, castArray, isEmpty, equals, sortBy, identity,
-  mapValues,
+  mapValues, flatMap, groupBy, overSome, toPairs, update, reduce, last, concat,
 } from 'lodash/fp';
 import resolve from 'resolve';
 import minimatch from 'minimatch';
-import { relative, dirname, basename } from 'path';
+import { relative, dirname, extname } from 'path';
 import { readFile } from 'fs';
 import promisify from 'tiny-promisify';
 
@@ -37,12 +37,80 @@ const declarationImports = flow(
   ]))
 );
 
+const declarationVariableDeclarationExport = cond([
+  [matchesProperty('type', 'FunctionDeclaration'), get(['id', 'name'])],
+  [matchesProperty('type', 'VariableDeclaration'), flow(get('declarations'), flatMap('id.name'))],
+]);
+
+const declarationNamedExports = cond([
+  [matchesProperty('declaration', null), flow(get('specifiers'), flatMap('exported.name'))],
+  [constant(true), flow(get('declaration'), declarationVariableDeclarationExport)],
+]);
+
+const isDefaultDeclaration = matchesProperty('type', 'ExportDefaultDeclaration');
+const isAllDeclaration = matchesProperty('type', 'ExportAllDeclaration');
+const isNamedDeclaration = matchesProperty('type', 'ExportNamedDeclaration');
+
+const getExportsExportedNames = flow(
+  cond([
+    [isDefaultDeclaration, constant('default')],
+    [isAllDeclaration, constant('*')],
+    [isNamedDeclaration, declarationNamedExports],
+    [constant(true), constant(null)],
+  ]),
+  castArray
+);
+
+const getExportsImportedNames = cond([
+  [isNamedDeclaration, flow(get('specifiers'), map('local.name'))],
+  [isAllDeclaration, constant('*')],
+]);
+
+const astExports = flow(
+  get('body'),
+  filter(overSome([
+    isDefaultDeclaration,
+    isAllDeclaration,
+    isNamedDeclaration,
+  ]))
+);
+
 const declarationFilename = get(['source', 'value']);
 
-const resolveDeclrationFilenameImportsPair = (basedir, resolveOptions, [dependency, imports]) => (
+const astImportsFromExportStatements = flow(
+  astExports,
+  filter(declarationFilename),
+  groupBy(declarationFilename),
+  mapValues(flatMap(getExportsImportedNames))
+);
+
+const astLocalExports = flow(
+  astExports,
+  flatMap(getExportsExportedNames)
+);
+
+const astImportsFromImportStatements = flow(
+  astDeclarationImports,
+  groupBy(declarationFilename),
+  mapValues(flow(
+    map(declarationImports),
+    reduce(concat, [])
+  ))
+);
+
+const astLocalImports = flow(
+  over([
+    astImportsFromImportStatements,
+    astImportsFromExportStatements,
+  ]),
+  reduce(assignWith(union), {})
+);
+
+
+const resolveDeclrationFilenamePair = (basedir, resolveOptions, [dependency, value]) => (
   new Promise((res, rej) => {
     resolve(dependency, set('basedir', basedir, resolveOptions), (err, resolvedFilename) => (
-      !err ? res([resolvedFilename, imports]) : rej(err)
+      !err ? res([resolvedFilename, value]) : rej(err)
     ));
   })
 );
@@ -68,7 +136,7 @@ export default async function getDependencies({
     ]), excludeValues);
 
   const addFile = async (state, filename) => {
-    const { dependencies, loadedFiles, stats } = state;
+    const { imports, exports, loadedFiles, stats } = state;
 
     const skip = includes(filename, loadedFiles) || fileIsExcluded(filename);
     if (skip) return { localImports: [], state };
@@ -90,7 +158,7 @@ export default async function getDependencies({
     try {
       ast = parse(contents, parserOptions);
     } catch (e) {
-      if (basename(filename) === '.js') {
+      if (extname(filename) === '.js') {
         throw e;
       }
 
@@ -102,19 +170,15 @@ export default async function getDependencies({
       };
     }
 
-    const declarationFilenameImportsPair = over([
-      declarationFilename,
-      declarationImports,
-    ]);
+    const localExports = astLocalExports(ast);
 
-    const astImports = astDeclarationImports(ast);
+    const allUnresolvedImportsPairsPromises = flow(
+      astLocalImports,
+      toPairs,
+      map(partial(resolveDeclrationFilenamePair, [basedir, resolveOptions]))
+    )(ast);
 
-    const allImportsPromises = flow(
-      map(declarationFilenameImportsPair),
-      map(partial(resolveDeclrationFilenameImportsPair, [basedir, resolveOptions]))
-    )(astImports);
-
-    const allImportsPairs = await Promise.all(allImportsPromises);
+    const allImportsPairs = await Promise.all(allUnresolvedImportsPairsPromises);
     const allImports = fromPairs(allImportsPairs);
 
     const localImports = flow(
@@ -129,16 +193,19 @@ export default async function getDependencies({
     return {
       localImports: keys(localImports),
       state: {
-        dependencies: assignWith(union, allImports, dependencies),
-        loadedFiles: union(loadedFiles, [filename]),
+        imports: assignWith(union, allImports, imports),
+        exports: set([filename], localExports, exports),
+        loadedFiles: union([filename], loadedFiles),
         stats,
       },
     };
   };
 
   let state = {
-    dependencies: {},
+    imports: {},
+    exports: {},
     loadedFiles: [],
+    stats: [],
   };
 
   const getDependenciesFromFile = async (inputState, filename) => {
@@ -161,8 +228,11 @@ export default async function getDependencies({
     state = await getDependenciesFromFile(state, filename);
   }
 
-  const dependencies = mapValues(sortBy(identity), state.dependencies);
-  const { loadedFiles } = state;
+  const sortValues = mapValues(sortBy(identity));
+  state = flow(
+    update('imports', sortValues),
+    update('exports', sortValues)
+  )(state);
 
-  return { dependencies, loadedFiles };
+  return state;
 }
