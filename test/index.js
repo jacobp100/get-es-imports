@@ -23,7 +23,7 @@ const nestedFiles = join(baseDir, 'nested-files');
 const babelFile = join(baseDir, 'babel-file');
 const nodeModules = join(__dirname, '../node_modules');
 
-test('single-file parses and loads recirsively via a single entry point', t => {
+test('a single parses and loads recirsively via a single entry point', t => {
   t.plan(2);
 
   const inputFile = join(singleFile, 'index.js');
@@ -38,7 +38,7 @@ test('single-file parses and loads recirsively via a single entry point', t => {
   });
 });
 
-test('single-file parses and loads non-recirsively via a single entry point', t => {
+test('a single parses and loads non-recirsively via a single entry point', t => {
   t.plan(2);
 
   const inputFile = join(singleFile, 'index.js');
@@ -54,7 +54,7 @@ test('single-file parses and loads non-recirsively via a single entry point', t 
   });
 });
 
-test('local-imports parses and loads recirsively via a single entry point', t => {
+test('multiple local imports parse and load recirsively via a single entry point', t => {
   t.plan(2);
 
   return getEsImports({
@@ -72,7 +72,7 @@ test('local-imports parses and loads recirsively via a single entry point', t =>
   });
 });
 
-test('local-imports parses and loads non-recursively from index', t => {
+test('multiple local imports parse and load non-recursively from index', t => {
   t.plan(2);
 
   return getEsImports({
@@ -89,7 +89,7 @@ test('local-imports parses and loads non-recursively from index', t => {
   });
 });
 
-test('local-imports parses and loads non-recursively via files from import1', t => {
+test('multiple local imports parse and load non-recursively from import1', t => {
   t.plan(2);
 
   return getEsImports({
@@ -117,7 +117,7 @@ test('it recognises namespace imports', t => {
   });
 });
 
-test('external-imports parses and loads recirsively via a single file', t => {
+test('external imports parse and loads recirsively, excluding the external import', t => {
   t.plan(1);
 
   return getEsImports({
@@ -131,7 +131,7 @@ test('external-imports parses and loads recirsively via a single file', t => {
   });
 });
 
-test('duplicated-imports parses and loads recirsively via a single file', t => {
+test('duplicated imports are only added once to the import object', t => {
   t.plan(1);
 
   return getEsImports({
@@ -143,7 +143,7 @@ test('duplicated-imports parses and loads recirsively via a single file', t => {
   });
 });
 
-test('export from statements without a namespace work', t => {
+test('export statements work for default, class, variable, and function declarations', t => {
   t.plan(2);
 
   return getEsImports({
@@ -186,7 +186,7 @@ test('export from statements with a namespace work', t => {
   });
 });
 
-test('nested-files parses and loads recirsively via a single file', t => {
+test('nested files are parsed and load recirsively', t => {
   t.plan(1);
 
   return getEsImports({
@@ -214,18 +214,18 @@ test('will not read files in the exclude string', t => {
   });
 });
 
-test('babel-file does not by default parse', t => {
+test('a file that requires babel does not by default parse', t => {
   // If this fails, you need to change the case file
   t.plan(1);
 
   return getEsImports({
     files: [join(babelFile, 'index.js')],
-  }).then(state => console.log(state)).catch(() => {
+  }).catch(() => {
     t.pass();
   });
 });
 
-test('babel-file parses and loads recirsively via a single file', t => {
+test('a file that requires babel parses with babel-eslint', t => {
   t.plan(1);
 
   return getEsImports({
