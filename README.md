@@ -64,7 +64,7 @@ The `exclude` option is an array of file globs for files you don't want to check
 
 The `parser` and `parserOptions` options are identical to [ESLint](http://eslint.org/docs/user-guide/configuring#specifying-parser). By default, it will supports ES6 modules and JSX.
 
-The `resolveOptions` is passed to [resolve](https://github.com/substack/node-resolve) to resolvev imports.
+The `resolveOptions` is passed to [resolve](https://github.com/substack/node-resolve) to resolve imports.
 
 ## Return values
 
