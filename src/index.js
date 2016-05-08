@@ -1,7 +1,7 @@
 import {
   map, get, flow, set, filter, over, fromPairs, assignWith, union, includes, keys, reject, first,
   partial, cond, matchesProperty, constant, some, castArray, isEmpty, equals, sortBy, identity,
-  mapValues, flatMap, groupBy, overSome, toPairs, update, reduce, last, concat,
+  mapValues, flatMap, groupBy, overSome, toPairs, update, reduce,
 } from 'lodash/fp';
 import resolve from 'resolve';
 import minimatch from 'minimatch';
@@ -23,12 +23,14 @@ export const defaultParserOptions = {
 const nodeModulesRe = /^[./]+\/node_modules\//;
 const isNodeModules = value => nodeModulesRe.test(value);
 
-const astDeclarationImports = flow(
+const getDeclarationFilename = get(['source', 'value']);
+
+const getAstDeclarationImports = flow(
   get('body'),
   filter({ type: 'ImportDeclaration' })
 );
 
-const declarationImports = flow(
+const getImportDeclarationImportedNames = flow(
   get('specifiers'),
   map(cond([
     [matchesProperty('type', 'ImportDefaultSpecifier'), constant('default')],
@@ -37,71 +39,66 @@ const declarationImports = flow(
   ]))
 );
 
-const declarationVariableDeclarationExport = cond([
+const getAstImportsFromImportStatements = flow(
+  getAstDeclarationImports,
+  groupBy(getDeclarationFilename),
+  mapValues(flatMap(getImportDeclarationImportedNames))
+);
+
+// Exports
+const getVariableDeclarationExportedNames = cond([
   [matchesProperty('type', 'FunctionDeclaration'), get(['id', 'name'])],
   [matchesProperty('type', 'VariableDeclaration'), flow(get('declarations'), flatMap('id.name'))],
 ]);
 
-const declarationNamedExports = cond([
-  [matchesProperty('declaration', null), flow(get('specifiers'), flatMap('exported.name'))],
-  [constant(true), flow(get('declaration'), declarationVariableDeclarationExport)],
+const exportNamedDeclarationExportedNames = flow(get('specifiers'), flatMap('exported.name'));
+const exportNamedDeclarationImportNames = flow(get('specifiers'), flatMap('local.name'));
+
+const getExportNamedDeclarationExportedNames = cond([
+  [matchesProperty('declaration', null), exportNamedDeclarationExportedNames],
+  [constant(true), flow(get('declaration'), getVariableDeclarationExportedNames)],
 ]);
 
-const isDefaultDeclaration = matchesProperty('type', 'ExportDefaultDeclaration');
-const isAllDeclaration = matchesProperty('type', 'ExportAllDeclaration');
-const isNamedDeclaration = matchesProperty('type', 'ExportNamedDeclaration');
+const isExportDefaultDeclaration = matchesProperty('type', 'ExportDefaultDeclaration');
+const isExportAllDeclaration = matchesProperty('type', 'ExportAllDeclaration');
+const isExportNamedDeclaration = matchesProperty('type', 'ExportNamedDeclaration');
 
-const getExportsExportedNames = flow(
-  cond([
-    [isDefaultDeclaration, constant('default')],
-    [isAllDeclaration, constant('*')],
-    [isNamedDeclaration, declarationNamedExports],
-    [constant(true), constant(null)],
-  ]),
-  castArray
-);
-
-const getExportsImportedNames = cond([
-  [isNamedDeclaration, flow(get('specifiers'), map('local.name'))],
-  [isAllDeclaration, constant('*')],
+const getExportDeclarationExportedNames = cond([
+  [isExportDefaultDeclaration, constant(['default'])],
+  [isExportAllDeclaration, constant(['*'])],
+  [isExportNamedDeclaration, getExportNamedDeclarationExportedNames],
 ]);
 
-const astExports = flow(
+const getExportDeclarationImportedNames = cond([
+  [isExportNamedDeclaration, exportNamedDeclarationImportNames],
+  [isExportAllDeclaration, constant(['*'])],
+]);
+
+const getAstExportsDeclarations = flow(
   get('body'),
   filter(overSome([
-    isDefaultDeclaration,
-    isAllDeclaration,
-    isNamedDeclaration,
+    isExportDefaultDeclaration,
+    isExportAllDeclaration,
+    isExportNamedDeclaration,
   ]))
 );
 
-const declarationFilename = get(['source', 'value']);
-
-const astImportsFromExportStatements = flow(
-  astExports,
-  filter(declarationFilename),
-  groupBy(declarationFilename),
-  mapValues(flatMap(getExportsImportedNames))
+const getAstImportsFromExportStatements = flow(
+  getAstExportsDeclarations,
+  filter(getDeclarationFilename),
+  groupBy(getDeclarationFilename),
+  mapValues(flatMap(getExportDeclarationImportedNames))
 );
 
-const astLocalExports = flow(
-  astExports,
-  flatMap(getExportsExportedNames)
+const getAstLocalExports = flow(
+  getAstExportsDeclarations,
+  flatMap(getExportDeclarationExportedNames)
 );
 
-const astImportsFromImportStatements = flow(
-  astDeclarationImports,
-  groupBy(declarationFilename),
-  mapValues(flow(
-    map(declarationImports),
-    reduce(concat, [])
-  ))
-);
-
-const astLocalImports = flow(
+const getAstLocalImports = flow(
   over([
-    astImportsFromImportStatements,
-    astImportsFromExportStatements,
+    getAstImportsFromImportStatements,
+    getAstImportsFromExportStatements,
   ]),
   reduce(assignWith(union), {})
 );
@@ -170,10 +167,10 @@ export default async function getDependencies({
       };
     }
 
-    const localExports = astLocalExports(ast);
+    const localExports = getAstLocalExports(ast);
 
     const allUnresolvedImportsPairsPromises = flow(
-      astLocalImports,
+      getAstLocalImports,
       toPairs,
       map(partial(resolveDeclrationFilenamePair, [basedir, resolveOptions]))
     )(ast);
