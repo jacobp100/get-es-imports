@@ -1,6 +1,6 @@
 {
   "name": "get-es-imports-exports",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Recursively get imports and exports for files using ES import/export syntax",
   "main": "index.js",
   "scripts": {
@@ -38,6 +38,7 @@
   },
   "dependencies": {
     "lodash": "^4.11.2",
+    "resolve": "^1.1.7",
     "tiny-promisify": "^0.1.1"
   },
   "ava": {
