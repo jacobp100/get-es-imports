@@ -45,19 +45,45 @@ const defaultParserOptions = exports.defaultParserOptions = {
 const nodeModulesRe = /^[./]+\/node_modules\//;
 const isNodeModules = value => nodeModulesRe.test(value);
 
-const astDeclarationImports = (0, _fp.flow)((0, _fp.get)('body'), (0, _fp.filter)({ type: 'ImportDeclaration' }));
+const getDeclarationFilename = (0, _fp.get)(['source', 'value']);
 
-const declarationImports = (0, _fp.flow)((0, _fp.get)('specifiers'), (0, _fp.map)((0, _fp.cond)([[(0, _fp.matchesProperty)('type', 'ImportDefaultSpecifier'), (0, _fp.constant)('default')], [(0, _fp.matchesProperty)('type', 'ImportNamespaceSpecifier'), (0, _fp.constant)('*')], [(0, _fp.matchesProperty)('type', 'ImportSpecifier'), (0, _fp.get)(['imported', 'name'])]])));
+const getAstDeclarationImports = (0, _fp.flow)((0, _fp.get)('body'), (0, _fp.filter)({ type: 'ImportDeclaration' }));
 
-const declarationFilename = (0, _fp.get)(['source', 'value']);
+const getImportDeclarationImportedNames = (0, _fp.flow)((0, _fp.get)('specifiers'), (0, _fp.map)((0, _fp.cond)([[(0, _fp.matchesProperty)('type', 'ImportDefaultSpecifier'), (0, _fp.constant)('default')], [(0, _fp.matchesProperty)('type', 'ImportNamespaceSpecifier'), (0, _fp.constant)('*')], [(0, _fp.matchesProperty)('type', 'ImportSpecifier'), (0, _fp.get)(['imported', 'name'])]])));
 
-const resolveDeclrationFilenameImportsPair = (basedir, resolveOptions, _ref) => {
+const getAstImportsFromImportStatements = (0, _fp.flow)(getAstDeclarationImports, (0, _fp.groupBy)(getDeclarationFilename), (0, _fp.mapValues)((0, _fp.flatMap)(getImportDeclarationImportedNames)));
+
+// Exports
+const getVariableDeclarationExportedNames = (0, _fp.cond)([[(0, _fp.matchesProperty)('type', 'FunctionDeclaration'), (0, _fp.get)(['id', 'name'])], [(0, _fp.matchesProperty)('type', 'ClassDeclaration'), (0, _fp.get)(['id', 'name'])], [(0, _fp.matchesProperty)('type', 'VariableDeclaration'), (0, _fp.flow)((0, _fp.get)('declarations'), (0, _fp.flatMap)('id.name'))]]);
+
+const exportNamedDeclarationExportedNames = (0, _fp.flow)((0, _fp.get)('specifiers'), (0, _fp.flatMap)('exported.name'));
+const exportNamedDeclarationImportNames = (0, _fp.flow)((0, _fp.get)('specifiers'), (0, _fp.flatMap)('local.name'));
+
+const getExportNamedDeclarationExportedNames = (0, _fp.cond)([[(0, _fp.matchesProperty)('declaration', null), exportNamedDeclarationExportedNames], [(0, _fp.constant)(true), (0, _fp.flow)((0, _fp.get)('declaration'), getVariableDeclarationExportedNames)]]);
+
+const isExportDefaultDeclaration = (0, _fp.matchesProperty)('type', 'ExportDefaultDeclaration');
+const isExportAllDeclaration = (0, _fp.matchesProperty)('type', 'ExportAllDeclaration');
+const isExportNamedDeclaration = (0, _fp.matchesProperty)('type', 'ExportNamedDeclaration');
+
+const getExportDeclarationExportedNames = (0, _fp.cond)([[isExportDefaultDeclaration, (0, _fp.constant)(['default'])], [isExportAllDeclaration, (0, _fp.constant)(['*'])], [isExportNamedDeclaration, getExportNamedDeclarationExportedNames]]);
+
+const getExportDeclarationImportedNames = (0, _fp.cond)([[isExportNamedDeclaration, exportNamedDeclarationImportNames], [isExportAllDeclaration, (0, _fp.constant)(['*'])]]);
+
+const getAstExportsDeclarations = (0, _fp.flow)((0, _fp.get)('body'), (0, _fp.filter)((0, _fp.overSome)([isExportDefaultDeclaration, isExportAllDeclaration, isExportNamedDeclaration])));
+
+const getAstImportsFromExportStatements = (0, _fp.flow)(getAstExportsDeclarations, (0, _fp.filter)(getDeclarationFilename), (0, _fp.groupBy)(getDeclarationFilename), (0, _fp.mapValues)((0, _fp.flatMap)(getExportDeclarationImportedNames)));
+
+const getAstLocalExports = (0, _fp.flow)(getAstExportsDeclarations, (0, _fp.flatMap)(getExportDeclarationExportedNames));
+
+const getAstLocalImports = (0, _fp.flow)((0, _fp.over)([getAstImportsFromImportStatements, getAstImportsFromExportStatements]), (0, _fp.reduce)((0, _fp.assignWith)(_fp.union), {}));
+
+const resolveDeclrationFilenamePair = (basedir, resolveOptions, _ref) => {
   var _ref2 = _slicedToArray(_ref, 2);
 
   let dependency = _ref2[0];
-  let imports = _ref2[1];
+  let value = _ref2[1];
   return new Promise((res, rej) => {
-    (0, _resolve2.default)(dependency, (0, _fp.set)('basedir', basedir, resolveOptions), (err, resolvedFilename) => !err ? res([resolvedFilename, imports]) : rej(err));
+    (0, _resolve2.default)(dependency, (0, _fp.set)('basedir', basedir, resolveOptions), (err, resolvedFilename) => !err ? res([resolvedFilename, value]) : rej(err));
   });
 };
 
@@ -88,7 +114,8 @@ exports.default = (() => {
 
     const addFile = (() => {
       var ref = _asyncToGenerator(function* (state, filename) {
-        const dependencies = state.dependencies;
+        const imports = state.imports;
+        const exports = state.exports;
         const loadedFiles = state.loadedFiles;
         const stats = state.stats;
 
@@ -113,7 +140,7 @@ exports.default = (() => {
         try {
           ast = parse(contents, parserOptions);
         } catch (e) {
-          if ((0, _path.basename)(filename) === '.js') {
+          if ((0, _path.extname)(filename) === '.js') {
             throw e;
           }
 
@@ -125,13 +152,11 @@ exports.default = (() => {
           };
         }
 
-        const declarationFilenameImportsPair = (0, _fp.over)([declarationFilename, declarationImports]);
+        const localExports = getAstLocalExports(ast);
 
-        const astImports = astDeclarationImports(ast);
+        const allUnresolvedImportsPairsPromises = (0, _fp.flow)(getAstLocalImports, _fp.toPairs, (0, _fp.map)((0, _fp.partial)(resolveDeclrationFilenamePair, [basedir, resolveOptions])))(ast);
 
-        const allImportsPromises = (0, _fp.flow)((0, _fp.map)(declarationFilenameImportsPair), (0, _fp.map)((0, _fp.partial)(resolveDeclrationFilenameImportsPair, [basedir, resolveOptions])))(astImports);
-
-        const allImportsPairs = yield Promise.all(allImportsPromises);
+        const allImportsPairs = yield Promise.all(allUnresolvedImportsPairsPromises);
         const allImports = (0, _fp.fromPairs)(allImportsPairs);
 
         const localImports = (0, _fp.flow)((0, _fp.reject)((0, _fp.flow)(_fp.first, (0, _fp.partial)(_path.relative, [filename]), isNodeModules)), _fp.fromPairs)(allImportsPairs);
@@ -139,8 +164,9 @@ exports.default = (() => {
         return {
           localImports: (0, _fp.keys)(localImports),
           state: {
-            dependencies: (0, _fp.assignWith)(_fp.union, allImports, dependencies),
-            loadedFiles: (0, _fp.union)(loadedFiles, [filename]),
+            imports: (0, _fp.assignWith)(_fp.union, allImports, imports),
+            exports: (0, _fp.set)([filename], localExports, exports),
+            loadedFiles: (0, _fp.union)([filename], loadedFiles),
             stats: stats
           }
         };
@@ -152,8 +178,10 @@ exports.default = (() => {
     })();
 
     let state = {
-      dependencies: {},
-      loadedFiles: []
+      imports: {},
+      exports: {},
+      loadedFiles: [],
+      stats: []
     };
 
     const getDependenciesFromFile = (() => {
@@ -185,12 +213,10 @@ exports.default = (() => {
       state = yield getDependenciesFromFile(state, filename);
     }
 
-    const dependencies = (0, _fp.mapValues)((0, _fp.sortBy)(_fp.identity), state.dependencies);
-    var _state = state;
-    const loadedFiles = _state.loadedFiles;
+    const sortValues = (0, _fp.mapValues)((0, _fp.sortBy)(_fp.identity));
+    state = (0, _fp.flow)((0, _fp.update)('imports', sortValues), (0, _fp.update)('exports', sortValues))(state);
 
-
-    return { dependencies: dependencies, loadedFiles: loadedFiles };
+    return state;
   });
 
   function getDependencies(_x) {

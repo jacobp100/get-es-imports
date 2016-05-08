@@ -44,9 +44,9 @@ Returns an object in the form:
 # API
 
 ```js
-import getEsImports from 'get-es-imports';
+import getEsImportsExports from 'get-es-imports-exports';
 
-const { imports, exports, loadedFiles, stats } = await getEsImports({
+const { imports, exports, loadedFiles, stats } = await getEsImportsExports({
   files = [],
   recurse = true,
   exclude = [],
@@ -105,7 +105,7 @@ The default parser and default parser options are exported for your convenience.
 To use `babel-eslint`, use,
 
 ```js
-getEsImports({
+getEsImportsExports({
   ...
   parser: 'babel-eslint',
   ...
