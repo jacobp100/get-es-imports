@@ -13,6 +13,8 @@ import ... from 'node_module'
 const baseDir = join(__dirname, 'cases');
 const singleFile = join(baseDir, 'single-file');
 const localImports = join(baseDir, 'local-imports');
+const importNothing = join(baseDir, 'import-nothing');
+const importJson = join(baseDir, 'import-json');
 const namespaceImports = join(baseDir, 'namespace-imports');
 const externalImports = join(baseDir, 'external-imports');
 const duplicatedImports = join(baseDir, 'duplicated-imports');
@@ -101,6 +103,41 @@ test('multiple local imports parse and load non-recursively from import1', t => 
     }, imports);
     t.deepEqual({
       [join(localImports, 'import1.js')]: ['default'],
+    }, exports);
+  });
+});
+
+test('recognises imports that do not import variables (import "src";)', t => {
+  t.plan(2);
+
+  return getEsImports({
+    files: [join(importNothing, 'index.js')],
+  }).then(({ imports, exports }) => {
+    t.deepEqual({
+      [join(importNothing, 'import1.js')]: [],
+    }, imports);
+    t.deepEqual({
+      [join(importNothing, 'index.js')]: [],
+      [join(importNothing, 'import1.js')]: [],
+    }, exports);
+  });
+});
+
+test('import json', t => {
+  t.plan(2);
+
+  return getEsImports({
+    files: [join(importJson, 'index.js')],
+    resolveOptions: {
+      extensions: ['.js', '.json'],
+    },
+  }).then(({ imports, exports }) => {
+    t.deepEqual({
+      [join(importJson, 'import1.json')]: [],
+    }, imports);
+    t.deepEqual({
+      [join(importJson, 'index.js')]: [],
+      [join(importJson, 'import1.json')]: [],
     }, exports);
   });
 });

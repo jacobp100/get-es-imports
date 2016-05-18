@@ -164,7 +164,7 @@ export default async function getDependencies({
 
       return {
         localImports: [],
-        stats: set('stats', updatedStats, state),
+        state: set('stats', updatedStats, state),
       };
     }
 

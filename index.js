@@ -148,7 +148,7 @@ exports.default = (() => {
 
           return {
             localImports: [],
-            stats: (0, _fp.set)('stats', updatedStats, state)
+            state: (0, _fp.set)('stats', updatedStats, state)
           };
         }
 
