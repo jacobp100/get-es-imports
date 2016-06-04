@@ -40,7 +40,7 @@ const defaultParserOptions = exports.defaultParserOptions = {
   }
 };
 
-const relativeToNodeModulesRe = /^[./\\]+\/node_modules\//;
+const relativeToNodeModulesRe = /^[./\\]+\/node_modules[/\\]/;
 const pointsToNodeModules = value => relativeToNodeModulesRe.test(value);
 
 const getDeclarationFilename = (0, _fp.get)(['source', 'value']);

@@ -20,7 +20,7 @@ export const defaultParserOptions = {
   },
 };
 
-const relativeToNodeModulesRe = /^[./\\]+\/node_modules\//;
+const relativeToNodeModulesRe = /^[./\\]+\/node_modules[/\\]/;
 const pointsToNodeModules = value => relativeToNodeModulesRe.test(value);
 
 const getDeclarationFilename = get(['source', 'value']);
