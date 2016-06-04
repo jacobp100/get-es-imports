@@ -1,7 +1,7 @@
 import {
   map, get, flow, set, filter, over, fromPairs, assignWith, union, includes, keys, reject, first,
   partial, cond, matchesProperty, constant, some, castArray, isEmpty, equals, sortBy, identity,
-  mapValues, flatMap, groupBy, overSome, toPairs, update, reduce,
+  mapValues, flatMap, groupBy, overSome, toPairs, update, reduce, concat,
 } from 'lodash/fp';
 import resolve from 'resolve';
 import minimatch from 'minimatch';
@@ -20,8 +20,8 @@ export const defaultParserOptions = {
   },
 };
 
-const nodeModulesRe = /^[./]+\/node_modules\//;
-const isNodeModules = value => nodeModulesRe.test(value);
+const relativeToNodeModulesRe = /^[./\\]+\/node_modules\//;
+const pointsToNodeModules = value => relativeToNodeModulesRe.test(value);
 
 const getDeclarationFilename = get(['source', 'value']);
 
@@ -160,12 +160,7 @@ export default async function getDependencies({
         throw e;
       }
 
-      const updatedStats = [...stats, `Failed to open file ${filename}`];
-
-      return {
-        localImports: [],
-        state: set('stats', updatedStats, state),
-      };
+      return update(['state', 'stats'], concat([`Failed to open file ${filename}`]), state);
     }
 
     const localExports = getAstLocalExports(ast);
@@ -179,12 +174,14 @@ export default async function getDependencies({
     const allImportsPairs = await Promise.all(allUnresolvedImportsPairsPromises);
     const allImports = fromPairs(allImportsPairs);
 
+    const pairIsNodeModule = flow(
+      first,
+      partial(relative, [filename]),
+      pointsToNodeModules
+    );
+
     const localImports = flow(
-      reject(flow(
-        first,
-        partial(relative, [filename]),
-        isNodeModules
-      )),
+      reject(pairIsNodeModule),
       fromPairs
     )(allImportsPairs);
 

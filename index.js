@@ -27,8 +27,6 @@ var _tinyPromisify2 = _interopRequireDefault(_tinyPromisify);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) arr2[i] = arr[i]; return arr2; } else { return Array.from(arr); } }
-
 function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { return step("next", value); }, function (err) { return step("throw", err); }); } } return step("next"); }); }; }
 
 const readFilePromise = (0, _tinyPromisify2.default)(_fs.readFile);
@@ -42,8 +40,8 @@ const defaultParserOptions = exports.defaultParserOptions = {
   }
 };
 
-const nodeModulesRe = /^[./]+\/node_modules\//;
-const isNodeModules = value => nodeModulesRe.test(value);
+const relativeToNodeModulesRe = /^[./\\]+\/node_modules\//;
+const pointsToNodeModules = value => relativeToNodeModulesRe.test(value);
 
 const getDeclarationFilename = (0, _fp.get)(['source', 'value']);
 
@@ -144,12 +142,7 @@ exports.default = (() => {
             throw e;
           }
 
-          const updatedStats = [].concat(_toConsumableArray(stats), [`Failed to open file ${ filename }`]);
-
-          return {
-            localImports: [],
-            state: (0, _fp.set)('stats', updatedStats, state)
-          };
+          return (0, _fp.update)(['state', 'stats'], (0, _fp.concat)([`Failed to open file ${ filename }`]), state);
         }
 
         const localExports = getAstLocalExports(ast);
@@ -159,7 +152,9 @@ exports.default = (() => {
         const allImportsPairs = yield Promise.all(allUnresolvedImportsPairsPromises);
         const allImports = (0, _fp.fromPairs)(allImportsPairs);
 
-        const localImports = (0, _fp.flow)((0, _fp.reject)((0, _fp.flow)(_fp.first, (0, _fp.partial)(_path.relative, [filename]), isNodeModules)), _fp.fromPairs)(allImportsPairs);
+        const pairIsNodeModule = (0, _fp.flow)(_fp.first, (0, _fp.partial)(_path.relative, [filename]), pointsToNodeModules);
+
+        const localImports = (0, _fp.flow)((0, _fp.reject)(pairIsNodeModule), _fp.fromPairs)(allImportsPairs);
 
         return {
           localImports: (0, _fp.keys)(localImports),

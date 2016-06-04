@@ -1,6 +1,6 @@
 {
   "name": "get-es-imports-exports",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Recursively get imports and exports for files using ES import/export syntax",
   "main": "index.js",
   "scripts": {
