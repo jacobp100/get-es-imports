@@ -8,6 +8,9 @@ import minimatch from 'minimatch';
 import { relative, dirname, extname } from 'path';
 import { readFile } from 'fs';
 import promisify from 'tiny-promisify';
+import os from 'os';
+
+const isWindows = os.platform() === 'win32';
 
 const readFilePromise = promisify(readFile);
 
@@ -113,6 +116,10 @@ const resolveDeclrationFilenamePair = (basedir, resolveOptions, [dependency, val
   })
 );
 
+const fileSuffixLen = '.m.css'.length;
+export function matchWindows(file) {
+  return file.indexOf('.m.css', file.length - fileSuffixLen) !== -1;
+}
 
 export default async function getDependencies({
   files = [],
@@ -128,10 +135,10 @@ export default async function getDependencies({
 
   const fileIsExcluded = isEmpty(excludeValues)
     ? constant(false)
-    : file => some(cond([
+    : file => (!isWindows ? some(cond([
       [includes('*'), partial(minimatch, [file])],
       [constant(true), equals(file)],
-    ]), excludeValues);
+    ]), excludeValues) : matchWindows(file));
 
   const addFile = async (state, filename) => {
     const { imports, exports, loadedFiles, stats } = state;
