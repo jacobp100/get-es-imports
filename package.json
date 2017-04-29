@@ -4,7 +4,7 @@
   "description": "Recursively get imports and exports for files using ES import/export syntax",
   "main": "index.js",
   "scripts": {
-    "test": "ava --verbose --timeout 2s",
+    "test": "ava --verbose --timeout 3s",
     "build": "babel src/index.js -o index.js"
   },
   "keywords": [
@@ -37,6 +37,7 @@
     "eslint-plugin-import": "^1.6.1"
   },
   "dependencies": {
+    "currently-unhandled": "^0.4.1",
     "espree": "^3.1.4",
     "lodash": "^4.12.0",
     "minimatch": "^3.0.0",
