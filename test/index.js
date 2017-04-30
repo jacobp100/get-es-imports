@@ -23,9 +23,10 @@ const exportFrom = join(baseDir, 'export-from');
 const exportFromNamespace = join(baseDir, 'export-from-namespace');
 const nestedFiles = join(baseDir, 'nested-files');
 const babelFile = join(baseDir, 'babel-file');
+const invalidFile = join(baseDir, 'invalid-files');
 const nodeModules = join(__dirname, '../node_modules');
 
-test('a single parses and loads recirsively via a single entry point', t => {
+test('a single parses and loads recursively via a single entry point', t => {
   t.plan(2);
 
   const inputFile = join(singleFile, 'index.js');
@@ -40,7 +41,7 @@ test('a single parses and loads recirsively via a single entry point', t => {
   });
 });
 
-test('a single parses and loads non-recirsively via a single entry point', t => {
+test('a single parses and loads non-recursively via a single entry point', t => {
   t.plan(2);
 
   const inputFile = join(singleFile, 'index.js');
@@ -56,7 +57,7 @@ test('a single parses and loads non-recirsively via a single entry point', t => 
   });
 });
 
-test('multiple local imports parse and load recirsively via a single entry point', t => {
+test('multiple local imports parse and load recursively via a single entry point', t => {
   t.plan(2);
 
   return getEsImports({
@@ -154,7 +155,7 @@ test('it recognises namespace imports', t => {
   });
 });
 
-test('external imports parse and loads recirsively, excluding the external import', t => {
+test('external imports parse and loads recursively, excluding the external import', t => {
   t.plan(1);
 
   return getEsImports({
@@ -223,7 +224,7 @@ test('export from statements with a namespace work', t => {
   });
 });
 
-test('nested files are parsed and load recirsively', t => {
+test('nested files are parsed and load recursively', t => {
   t.plan(1);
 
   return getEsImports({
@@ -270,5 +271,16 @@ test('a file that requires babel parses with babel-eslint', t => {
     parser: 'babel-eslint',
   }).then(() => {
     t.pass();
-  });
+  }).catch(t.fail);
+});
+
+test('a file that imports scss can exclude correctly', t => {
+  t.plan(1);
+  return getEsImports({
+    files: [join(invalidFile, 'index.js')],
+    exclude: ['*.scss'],
+    parser: 'babel-eslint',
+  }).then(() => {
+    t.pass();
+  }).catch(t.fail);
 });
